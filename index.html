@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpinEarn (Single-File) - Static HTML</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{
+ --primary:#3b82f6;--primary-dark:#2563eb;--secondary:#10b981;--danger:#ef4444;--warn:#f59e0b;
+ --dark:#1f2937;--mid:#6b7280;--light:#f3f4f6;--surface:#fff;--border:#e5e7eb;
+ --sidebar:250px;--header:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--light);color:#111;min-height:100vh}
+a{color:var(--primary);text-decoration:none}
+#app{display:grid;grid-template-columns:var(--sidebar) 1fr;grid-template-rows:var(--header) 1fr;height:100vh}
+aside{grid-row:1/3;background:var(--dark);color:#fff;border-right:1px solid var(--border);overflow:auto}
+aside h2{padding:16px 18px;color:var(--primary);}
+aside a{display:flex;gap:10px;align-items:center;padding:12px 18px;color:#fff}
+aside a.active,aside a:hover{background:rgba(255,255,255,.08)}
+header{grid-column:2/3;display:flex;align-items:center;justify-content:flex-end;padding:0 18px;border-bottom:1px solid var(--border);background:#fff}
+main{grid-column:2/3;overflow:auto;padding:24px}
+.page{display:none;background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.page.active{display:block}
+h1.page-title{font-size:1.4rem;margin-bottom:14px;color:var(--primary)}
+.form .row{margin-bottom:12px}
+.form label{display:block;margin-bottom:6px;color:var(--mid)}
+.form input, .form select{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px}
+.btn{padding:.65rem 1.1rem;border:none;border-radius:8px;color:#fff;background:var(--primary);cursor:pointer}
+.btn.secondary{background:var(--secondary)} .btn.danger{background:var(--danger)} .btn.warn{background:var(--warn); color:#111}
+.msg{margin:12px 0;padding:10px 12px;border-radius:6px;font-size:.92rem}
+.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+.grid{display:grid;gap:12px}
+.stats{grid-template-columns:repeat(4,minmax(160px,1fr))}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px}
+.card .ico{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff}
+.card[data-k=balance] .ico{background:var(--primary)}
+.card[data-k=spins] .ico{background:var(--secondary)}
+.card[data-k=tokens] .ico{background:var(--danger)}
+.card[data-k=scratch] .ico{background:var(--warn); color:#111}
+.activity{border:1px solid var(--border);border-radius:8px;max-height:50vh;overflow:auto}
+.activity .item{display:flex;gap:12px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
+.activity .item:last-child{border-bottom:none}
+.wheel{width:280px;height:280px;border:10px solid var(--dark);border-radius:50%;margin:15px auto;display:flex;align-items:center;justify-content:center;background:conic-gradient(#A7F3D0 0 45deg,#BAE6FD 45deg 90deg,#FECACA 90deg 135deg,#FED7AA 135deg 180deg,#D1FAE5 180deg 225deg,#FDE68A 225deg 270deg,#E9D5FF 270deg 315deg,#93C5FD 315deg 360deg)}
+.pointer{width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-bottom:30px solid var(--danger);margin:0 auto}
+.reels{display:flex;gap:10px;background:#fff;border:2px solid #ccc;border-radius:8px;padding:12px;height:160px;overflow:hidden;width:max-content;margin:0 auto}
+.reel{width:70px;background:#eee;border:1px solid #ddd;position:relative;overflow:hidden}
+.symbols{position:absolute;top:0;left:0;width:100%}
+.symbol{height:50px;line-height:50px;font-size:2rem;text-align:center;border-bottom:1px dashed #ccc}
+.scratch{width:320px;height:160px;border:3px dashed var(--primary);background:#e0f2fe;color:#111;margin:0 auto;position:relative;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.s-over{position:absolute;inset:0;background:linear-gradient(135deg,#bdc3c7,#95a5a6);display:flex;align-items:center;justify-content:center;font-weight:700}
+.kv{margin:8px 0;color:var(--mid)}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <h2>SpinEarn</h2>
+    <nav id="nav">
+      <a data-page="login" class="nav logged-out"><i class="fa fa-sign-in-alt"></i>Login</a>
+      <a data-page="register" class="nav logged-out"><i class="fa fa-user-plus"></i>Register</a>
+      <a data-page="dashboard" class="nav logged-in active"><i class="fa fa-gauge"></i>Dashboard</a>
+      <a data-page="spin" class="nav logged-in"><i class="fa fa-bullseye"></i>Spin Wheel</a>
+      <a data-page="slots" class="nav logged-in"><i class="fa fa-dice-three"></i>Slots</a>
+      <a data-page="scratch" class="nav logged-in"><i class="fa fa-clone"></i>Scratch Cards</a>
+      <a data-page="history" class="nav logged-in"><i class="fa fa-history"></i>History</a>
+      <a data-page="profile" class="nav logged-in"><i class="fa fa-user"></i>Profile</a>
+      <a id="logout" class="nav logged-in"><i class="fa fa-right-from-bracket"></i>Logout</a>
+    </nav>
+  </aside>
+  <header>
+    <div id="greet">Hi, Guest!</div>
+  </header>
+  <main>
+    <!-- LOGIN -->
+    <section id="page-login" class="page">
+      <h1 class="page-title">Login</h1>
+      <div class="form">
+        <div class="row"><label>Username</label><input id="li-user"></div>
+        <div class="row"><label>Password</label><input id="li-pass" type="password"></div>
+        <div id="li-msg" class="msg" style="display:none"></div>
+        <button class="btn" id="btn-login">Login</button>
+      </div>
+      <p style="margin-top:10px;">New user? Open Register from sidebar.</p>
+    </section>
+
+    <!-- REGISTER -->
+    <section id="page-register" class="page">
+      <h1 class="page-title">Register</h1>
+      <div class="form">
+        <div class="row"><label>Username (a-z,0-9,_)</label><input id="rg-user" pattern="^[a-zA-Z0-9_]{4,}$"></div>
+        <div class="row"><label>Password (6+)</label><input id="rg-pass" type="password"></div>
+        <div class="row"><label>कन्फर्म Password</label><input id="rg-pass2" type="password"></div>
+        <div id="rg-msg" class="msg" style="display:none"></div>
+        <button class="btn" id="btn-register">Create Account</button>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <h1 class="page-title">Dashboard</h1>
+      <div class="grid stats">
+        <div class="card" data-k="balance"><div class="ico"><i class="fa fa-coins"></i></div><div><div class="kv">Balance</div><div id="stat-balance">--</div></div></div>
+        <div class="card" data-k="spins"><div class="ico"><i class="fa fa-sync-alt"></i></div><div><div class="kv">Spins Left</div><div id="stat-spins">--</div></div></div>
+        <div class="card" data-k="tokens"><div class="ico"><i class="fa fa-ticket"></i></div><div><div class="kv">Slot Tokens</div><div id="stat-tokens">--</div></div></div>
+        <div class="card" data-k="scratch"><div class="ico"><i class="fa fa-paint-roller"></i></div><div><div class="kv">Scratch Cards</div><div id="stat-scratch">--</div></div></div>
+      </div>
+      <h3 style="margin:14px 0 6px 0;">Recent Activity</h3>
+      <div id="dash-activity" class="activity"></div>
+    </section>
+
+    <!-- SPIN -->
+    <section id="page-spin" class="page">
+      <h1 class="page-title">Spin Wheel</h1>
+      <div class="pointer"></div>
+      <div class="wheel" id="wheel"></div>
+      <div style="text-align:center;margin:10px 0;">Spins Left: <b id="spin-left">--</b></div>
+      <div id="spin-result" style="text-align:center;margin:6px 0;height:22px;color:var(--primary);font-weight:600"></div>
+      <div style="text-align:center"><button class="btn secondary" id="btn-spin">Spin Now</button></div>
+    </section>
+
+    <!-- SLOTS -->
+    <section id="page-slots" class="page">
+      <h1 class="page-title">Slot Machine</h1>
+      <p style="text-align:center;margin-bottom:8px">Cost: 1 Token | Your Tokens: <b id="slot-tokens">--</b></p>
+      <div class="reels">
+        <div class="reel"><div class="symbols" id="r1"></div></div>
+        <div class="reel"><div class="symbols" id="r2"></div></div>
+        <div class="reel"><div class="symbols" id="r3"></div></div>
+      </div>
+      <div id="slots-msg" style="text-align:center;margin:10px 0;height:22px;color:var(--primary);font-weight:600"></div>
+      <div style="text-align:center"><button class="btn danger" id="btn-slot">Play (1 Token)</button></div>
+    </section>
+
+    <!-- SCRATCH -->
+    <section id="page-scratch" class="page">
+      <h1 class="page-title">Scratch Card</h1>
+      <p style="text-align:center">Cards Left Today: <b id="scr-left">--</b></p>
+      <div class="scratch" id="scratch">
+        <div id="scr-result" style="font-size:1.6rem;font-weight:700;color:var(--primary)">? pts</div>
+        <div class="s-over" id="scr-over"><i class="fa fa-hand-pointer" style="margin-right:8px"></i> Tap to Scratch</div>
+      </div>
+      <div style="text-align:center;margin-top:10px"><button class="btn warn" id="btn-scratch">Scratch Card</button></div>
+      <div id="scr-msg" class="msg" style="display:none"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="page-history" class="page">
+      <h1 class="page-title">History</h1>
+      <div id="full-activity" class="activity"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="page-profile" class="page">
+      <h1 class="page-title">Profile</h1>
+      <div class="card"><div><b>Username:</b> <span id="pf-user">--</span></div></div>
+      <div class="card" style="margin-top:8px"><div><b>Referral Code:</b> <span id="pf-ref">--</span></div></div>
+      <div class="card" style="margin-top:8px"><div><b>Points:</b> <span id="pf-pts">--</span></div></div>
+    </section>
+  </main>
+</div>
+<script>
+/* ===== Simple Static Backend (localStorage) ===== */
+const LS_KEY='spinearn_static_db';
+const defaultUser=(u,p)=>({user_id:1,username:u,password:p,points:200,spins_left:5,slot_tokens:10,scratch_cards_left:3,referral_code:randomCode(),activity:[]});
+function readDB(){
+  let raw=localStorage.getItem(LS_KEY);
+  if(!raw){
+    const seed={users:[defaultUser('demo','demo123')],last_id:1};
+    localStorage.setItem(LS_KEY,JSON.stringify(seed));
+    return seed;
+  }
+  try{return JSON.parse(raw);}catch(e){return {users:[defaultUser('demo','demo123')],last_id:1};}
+}
+function writeDB(db){localStorage.setItem(LS_KEY,JSON.stringify(db));}
+function randomCode(){return Math.random().toString(36).slice(2,10);}
+function addActivity(user, type, desc, points_change=0, details=null){
+  const item={ts:Date.now(),type,desc,points_change,details};
+  user.activity.unshift(item);
+}
+/* ===== Auth ===== */
+let currentUser=null;
+function findUser(username){const db=readDB();return db.users.find(u=>u.username===username);}
+function register(username,password){
+  const db=readDB();
+  if(db.users.some(u=>u.username===username)) throw new Error('Username already exists');
+  const u={user_id:++db.last_id,username,password,points:100,spins_left:5,slot_tokens:10,scratch_cards_left:3,referral_code:randomCode(),activity:[]};
+  addActivity(u,'register','Account created',0);
+  db.users.push(u); writeDB(db); return u;
+}
+function login(username,password){
+  const u=findUser(username);
+  if(!u||u.password!==password) throw new Error('Invalid username or password');
+  addActivity(u,'login','Logged in',0);
+  const db=readDB(); writeDB(db); return u;
+}
+/* ===== UI Helpers ===== */
+function $(id){return document.getElementById(id);}
+function setActive(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('aside a.nav').forEach(a=>{
+    a.classList.toggle('active', a.dataset.page===page);
+  });
+}
+function updateLoginState(){
+  const loggedIn=!!currentUser;
+  document.querySelectorAll('.logged-in').forEach(el=>el.style.display=loggedIn?'flex':'none');
+  document.querySelectorAll('.logged-out').forEach(el=>el.style.display=!loggedIn?'flex':'none');
+  $('greet').textContent=loggedIn?('Hi, '+currentUser.username+'!'):'Hi, Guest!';
+}
+function refreshStats(){
+  if(!currentUser) return;
+  $('stat-balance').textContent=currentUser.points+' pts';
+  $('stat-spins').textContent=currentUser.spins_left;
+  $('stat-tokens').textContent=currentUser.slot_tokens;
+  $('stat-scratch').textContent=currentUser.scratch_cards_left;
+  $('spin-left').textContent=currentUser.spins_left;
+  $('slot-tokens').textContent=currentUser.slot_tokens;
+  $('scr-left').textContent=currentUser.scratch_cards_left;
+  $('pf-user').textContent=currentUser.username;
+  $('pf-pts').textContent=currentUser.points;
+  $('pf-ref').textContent=currentUser.referral_code;
+  renderActivityLists();
+}
+function renderActivityLists(){
+  const makeItem=(it)=>{
+    const d=new Date(it.ts);
+    return `<div class="item"><div style="width:34px;text-align:center"><i class="fa fa-circle-info"></i></div>
+    <div style="flex:1">${it.desc}${it.points_change?` <b>(${it.points_change>0?'+':''}${it.points_change})</b>`:''}</div>
+    <div style="color:var(--mid);white-space:nowrap">${d.toLocaleString()}</div></div>`;
+  };
+  $('dash-activity').innerHTML=(currentUser.activity.slice(0,10).map(makeItem).join('')||'<div class="item"><div>No activity yet</div></div>');
+  $('full-activity').innerHTML=(currentUser.activity.map(makeItem).join('')||'<div class="item"><div>No activity yet</div></div>');
+}
+/* ===== Events ===== */
+document.querySelectorAll('aside a.nav[data-page]').forEach(a=>{
+  a.addEventListener('click',()=>{ setActive(a.dataset.page); });
+});
+$('logout').addEventListener('click',()=>{ currentUser=null; updateLoginState(); setActive('login'); });
+$('btn-register').addEventListener('click',()=>{
+  const u=$('rg-user').value.trim(), p=$('rg-pass').value, p2=$('rg-pass2').value;
+  const msg=$('rg-msg'); msg.style.display='block';
+  if(!/^[a-zA-Z0-9_]{4,}$/.test(u)) return msg.className='msg error', msg.textContent='Invalid username (min 4 chars, a-z 0-9 _)';
+  if(p.length<6) return msg.className='msg error', msg.textContent='Password 6+ होना चाहिए';
+  if(p!==p2) return msg.className='msg error', msg.textContent='Password मैच नहीं कर रहा';
+  try{ currentUser=register(u,p); msg.className='msg success'; msg.textContent='Registration successful!';
+    updateLoginState(); setActive('dashboard'); refreshStats();
+  }catch(e){ msg.className='msg error'; msg.textContent=e.message; }
+});
+$('btn-login').addEventListener('click',()=>{
+  const u=$('li-user').value.trim(), p=$('li-pass').value; const msg=$('li-msg'); msg.style.display='block';
+  try{ currentUser=login(u,p); msg.className='msg success'; msg.textContent='Login सफल!';
+    updateLoginState(); setActive('dashboard'); refreshStats();
+  }catch(e){ msg.className='msg error'; msg.textContent=e.message; }
+});
+/* ===== Spin ===== */
+const wheelValues=[10,50,0,100,25,0,5,15];
+$('btn-spin').addEventListener('click',()=>{
+  if(!currentUser) return;
+  if(currentUser.spins_left<=0){ $('spin-result').textContent='No spins left today'; return; }
+  currentUser.spins_left--;
+  const idx=Math.floor(Math.random()*wheelValues.length);
+  const win=wheelValues[idx];
+  currentUser.points+=win;
+  addActivity(currentUser, win>0?'spin_win':'spin_lose', win>0?`Wheel: Won ${win} pts`:'Wheel: No prize', win);
+  $('spin-result').textContent= win>0?`You won ${win} pts!`:'Better luck next time!';
+  const db=readDB(); const u=db.users.find(x=>x.username===currentUser.username); Object.assign(u,currentUser); writeDB(db);
+  refreshStats();
+});
+/* ===== Slots ===== */
+const em=['🍒','🍊','🍋','🍉','🔔','⭐','７'];
+function fillReels(){
+  ['r1','r2','r3'].forEach(id=>{
+    const c=$(id); c.innerHTML=''; for(let i=0;i<20;i++){const d=document.createElement('div'); d.className='symbol'; d.textContent=em[i%em.length]; c.appendChild(d);}
+  });
+}
+fillReels();
+$('btn-slot').addEventListener('click',()=>{
+  if(currentUser.slot_tokens<=0){ $('slots-msg').textContent='No tokens left'; return; }
+  currentUser.slot_tokens--;
+  const r=[0,0,0].map(()=>Math.floor(Math.random()*em.length));
+  const reels=['r1','r2','r3'].map((id,i)=>{const el=$(id); el.style.transition='transform 1s'; const offset=(r[i]+em.length*2)*50; el.style.transform=`translateY(-${offset}px)`; setTimeout(()=>{el.style.transition='none'; el.style.transform=`translateY(-${(r[i])*50}px)`;},1100); return r[i];});
+  setTimeout(()=>{
+    let win=0, txt='No win';
+    if(reels[0]===reels[1] && reels[1]===reels[2]){ win=50; txt='Jackpot! +50'; }
+    else if(reels[0]===reels[1] || reels[1]===reels[2] || reels[0]===reels[2]){ win=5; txt='Small win +5'; }
+    currentUser.points+=win;
+    $('slots-msg').textContent=txt;
+    addActivity(currentUser, win>0?'slots_win':'slots_lose', 'Slots played', win);
+    const db=readDB(); const u=db.users.find(x=>x.username===currentUser.username); Object.assign(u,currentUser); writeDB(db);
+    refreshStats();
+  },1200);
+});
+/* ===== Scratch ===== */
+function doScratch(){
+  if(currentUser.scratch_cards_left<=0){ showScrMsg('No scratch cards left today','error'); return; }
+  currentUser.scratch_cards_left--;
+  const v=[0,5,10,25][Math.floor(Math.random()*4)];
+  currentUser.points+=v;
+  $('scr-result').textContent=v+' pts';
+  $('scr-over').style.display='none';
+  addActivity(currentUser, v>0?'scratch_win':'scratch_lose', v>0?`Scratch won ${v}`:'Scratch no prize', v);
+  const db=readDB(); const u=db.users.find(x=>x.username===currentUser.username); Object.assign(u,currentUser); writeDB(db);
+  refreshStats();
+}
+function showScrMsg(t, type){ const el=$('scr-msg'); el.style.display='block'; el.className='msg '+(type||'success'); el.textContent=t; }
+$('btn-scratch').addEventListener('click',doScratch);
+$('scratch').addEventListener('click',()=>{ if($('scr-over').style.display!=='none') doScratch(); });
+/* ===== Init ===== */
+(function init(){
+  updateLoginState();
+  // try auto-login demo for convenience
+  try{ currentUser=login('demo','demo123'); setActive('dashboard'); }catch(e){}
+  refreshStats();
+})();
+</script>
+</body>
+</html>
